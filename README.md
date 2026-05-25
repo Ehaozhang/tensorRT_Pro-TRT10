@@ -1,105 +1,25 @@
 
 ## 简介
 
-该仓库基于 [shouxieai/tensorRT_Pro](https://github.com/shouxieai/tensorRT_Pro)，并进行了调整以支持 YOLOv8 的各项任务。
-
-* 目前已支持 YOLOv8、YOLOv8-Cls、YOLOv8-Seg、YOLOv8-OBB、YOLOv8-Pose、RT-DETR、ByteTrack、YOLOv9、YOLOv10、RTMO、PP-OCRv4、LaneATT、CLRNet、CLRerNet、YOLO11、Depth-Anything、YOLOv12、YOLOv13、YOLO26 高性能推理！！！🚀🚀🚀
-* 基于 tensorRT8.x，C++ 高级接口，C++ 部署，服务器/嵌入式使用
-
-<div align=center><img src="./assets/output.jpg" width="50%" height="50%"></div>
-
-## CSDN文章同步讲解
-- 🔥 [YOLOv8推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/134276907)
-- 🔥 [YOLOv8-Cls推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/134277392)
-- 🔥 [YOLOv8-Seg推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/134277752)
-- 🔥 [YOLOv8-OBB推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/135713830)
-- 🔥 [YOLOv8-Pose推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/134278117)
-- 🔥 [RT-DETR推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/134356250)
-- 🔥 [YOLOv9推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/136492338)
-- 🔥 [YOLOv10推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/139216405)
-- 🔥 [MMPose-RTMO推理详解及部署实现（上）](https://blog.csdn.net/qq_40672115/article/details/139364023)
-- 🔥 [MMPose-RTMO推理详解及部署实现（下）](https://blog.csdn.net/qq_40672115/article/details/139375752)
-- 🔥 [LayerNorm Plugin的使用与说明](https://blog.csdn.net/qq_40672115/article/details/140246052)
-- 🔥 [PaddleOCR-PP-OCRv4推理详解及部署实现（上）](https://blog.csdn.net/qq_40672115/article/details/140571346)
-- 🔥 [PaddleOCR-PP-OCRv4推理详解及部署实现（中）](https://blog.csdn.net/qq_40672115/article/details/140585830)
-- 🔥 [PaddleOCR-PP-OCRv4推理详解及部署实现（下）](https://blog.csdn.net/qq_40672115/article/details/140648937)
-- 🔥 [LaneATT推理详解及部署实现（上）](https://blog.csdn.net/qq_40672115/article/details/140891544)
-- 🔥 [LaneATT推理详解及部署实现（下）](https://blog.csdn.net/qq_40672115/article/details/140909528)
-- 🔥 [CLRNet推理详解及部署实现（上）](https://blog.csdn.net/qq_40672115/article/details/141090952)
-- 🔥 [CLRNet推理详解及部署实现（下）](https://blog.csdn.net/qq_40672115/article/details/141107365)
-- 🔥 [CLRerNet推理详解及部署实现（上）](https://blog.csdn.net/qq_40672115/article/details/141275384)
-- 🔥 [CLRerNet推理详解及部署实现（下）](https://blog.csdn.net/qq_40672115/article/details/141275949)
-- 🔥 [YOLO11推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/143089165)
-- 🔥 [Depth-Anything推理详解及部署实现（上）](https://blog.csdn.net/qq_40672115/article/details/144199266)
-- 🔥 [Depth-Anything推理详解及部署实现（下）](https://blog.csdn.net/qq_40672115/article/details/144475226)
-- 🔥 [YOLOv12推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/145738637)
-- 🔥 [YOLO26-Sem推理详解及部署实现](https://blog.csdn.net/qq_40672115/article/details/161342118)
-
-## Top News
-- **2026/5/23**
-  - YOLO26 语义分割任务支持
-- **2026/1/15**
-  - YOLO26 分类、检测、分割、姿态点估计任务支持
-- **2025/6/25**
-  - YOLOv13 支持
-- **2025/2/19**
-  - YOLOv12 支持
-- **2024/12/14**
-  - Depth-Anything 支持
-- **2024/10/20**
-  - YOLO11 分类、检测、分割、姿态点估计任务支持
-- **2024/8/18**
-  - CLRerNet 支持
-- **2024/8/11**
-  - CLRNet 支持
-- **2024/8/4**
-  - LaneATT 支持
-  - 提供测试视频下载（[Baidu Drive](https://pan.baidu.com/s/1g-DvhZSIbXhEqp4iiFANTQ?pwd=lane )）
-- **2024/7/24**
-  - PP-OCRv4 支持
-  - cuOSD 支持，代码 copy 自 [Lidar_AI_Solution/libraries/cuOSD](https://github.com/NVIDIA-AI-IOT/Lidar_AI_Solution/tree/master/libraries/cuOSD)
-- **2024/7/7**
-  - LayerNorm Plugin 支持，代码 copy 自 [CUDA-BEVFusion/src/plugins/custom_layernorm.cu](https://github.com/NVIDIA-AI-IOT/Lidar_AI_Solution/blob/master/CUDA-BEVFusion/src/plugins/custom_layernorm.cu)
-  - 提供 ONNX 模型下载（[Baidu Drive](https://pan.baidu.com/s/1MbPYzUEkONsjCPOudiTt1A?pwd=onnx)），方便大家测试使用
-- **2024/6/1**
-  - RTMO 支持
-- **2024/5/29**
-  - 修改 YOLOv6 的 ONNX 导出以及推理
-- **2024/5/26**
-  - YOLOv10 支持
-- **2024/3/5**
-  - YOLOv9 支持
-- **2024/2/1**
-  - 新增 MinMaxCalibrator 校准器，可以通过 `TRT::Calibrator::MinMax` 指定
-  - 新增 mAP 测试使用的一些脚本文件，mAP 计算代码 copy 自 [yolov6/core/evaler.py#L231](https://github.com/meituan/YOLOv6/blob/main/yolov6/core/evaler.py#L231)
-- **2024/1/21**
-  - YOLOv8-OBB 支持
-  - ByteTrack 支持，实现基本跟踪功能
-- **2024/1/10**
-  - 修复 IoU 计算 bug
-- **2023/11/12**
-  - RT-DETR 支持
-- **2023/11/07**
-  - 首次提交代码，YOLOv8 分类、检测、分割、姿态点估计任务支持
+该仓库基于 [Melody-Zhou/tensorRT_Pro-YOLOv8](https://github.com/Melody-Zhou/tensorRT_Pro-YOLOv8)，并进行了调整以支持 Tensort 10 API版本推理
 
 ## 环境配置
 
 该项目依赖于 cuda、cudnn、tensorRT、opencv、protobuf 库，请在 CMakeLists.txt 或 Makefile 中手动指定路径配置
 
 * 服务器
-  * CUDA >= 10.2
+  * CUDA >= 12.3
   * cuDNN >= 8.x
-  * TensorRT >= 8.x
+  * TensorRT >= 10.0
   * protobuf == 3.11.4
-  * 软件安装请参考：[Ubuntu20.04软件安装大全](https://blog.csdn.net/qq_40672115/article/details/130255299)
 * 嵌入式
-  * jetpack >= 4.6
+  * jetpack >= 5
   * protobuf == 3.11.4
 
 克隆该项目
 
 ```shell
-git clone https://github.com/Melody-Zhou/tensorRT_Pro-YOLOv8.git
+git clone https://github.com/Ehaozhang/tensorRT_Pro-TRT10
 ```
 
 <details>
@@ -109,19 +29,19 @@ git clone https://github.com/Melody-Zhou/tensorRT_Pro-YOLOv8.git
 
 ```cmake
 # CMakeLists.txt 13 行, 修改 opencv 路径
-set(OpenCV_DIR   "/usr/local/include/opencv4/")
+set(OpenCV_DIR   "your opencv path")
 
 # CMakeLists.txt 15 行, 修改 cuda 路径
-set(CUDA_TOOLKIT_ROOT_DIR     "/usr/local/cuda-11.6")
+set(CUDA_TOOLKIT_ROOT_DIR     "/usr/local/cuda-12.3")
 
 # CMakeLists.txt 16 行, 修改 cudnn 路径
-set(CUDNN_DIR    "/usr/local/cudnn8.4.0.27-cuda11.6")
+set(CUDNN_DIR    "your_path")
 
 # CMakeLists.txt 17 行, 修改 tensorRT 路径
-set(TENSORRT_DIR "/opt/TensorRT-8.4.1.5")
+set(TENSORRT_DIR "your trt path")
 
 # CMakeLists.txt 20 行, 修改 protobuf 路径
-set(PROTOBUF_DIR "/home/jarvis/protobuf")
+set(PROTOBUF_DIR "your_path")
 ```
 2. 编译
 
@@ -132,35 +52,9 @@ cmake ..
 make -j64
 ```
 
-</details>
-
-<details>
-<summary>Makefile 编译</summary>
-
 1. 修改库文件路径
 
-```makefile
-# Makefile 4 行，修改 protobuf 路径
-lean_protobuf  := /home/jarvis/protobuf
-
-# Makefile 5 行，修改 tensorRT 路径
-lean_tensor_rt := /opt/TensorRT-8.4.1.5
-
-# Makefile 6 行，修改 cudnn 路径
-lean_cudnn     := /usr/local/cudnn8.4.0.27-cuda11.6
-
-# Makefile 7 行，修改 opencv 路径
-lean_opencv    := /usr/local
-
-# Makefile 8 行，修改 cuda 路径
-lean_cuda      := /usr/local/cuda-11.6
-```
-
 2. 编译
-
-```shell
-make -j64
-```
 
 </details>
 
@@ -3083,3 +2977,4 @@ auto boxes = engine->commit(image).get()  // 得到的是 vector<Box>
 - [https://github.com/shouxieai/tensorRT_Pro](https://github.com/shouxieai/tensorRT_Pro)
 - [https://github.com/shouxieai/infer](https://github.com/shouxieai/infer)
 - [https://github.com/ultralytics/ultralytics](https://github.com/ultralytics/ultralytics)
+- [https://github.com/Melody-Zhou/tensorRT_Pro-YOLOv8](https://github.com/Melody-Zhou/tensorRT_Pro-YOLOv8)
