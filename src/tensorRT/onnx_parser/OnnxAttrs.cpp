@@ -7,6 +7,13 @@
 #include "onnx2trt_utils.hpp"
 #include <onnx/onnx_pb.h>
 
+// TensorRT 10 removed RNN related APIs
+#if NV_TENSORRT_MAJOR < 10
+#define TRT_HAS_RNN 1
+#else
+#define TRT_HAS_RNN 0
+#endif
+
 template <>
 float OnnxAttrs::get<float>(const std::string& key) const
 {
@@ -202,6 +209,7 @@ const ::onnx::GraphProto& OnnxAttrs::get<const ::onnx::GraphProto&>(const std::s
     return this->at(key)->g();
 }
 
+#if TRT_HAS_RNN
 template <>
 nvinfer1::RNNOperation OnnxAttrs::get<nvinfer1::RNNOperation>(const std::string& key) const
 {
@@ -254,6 +262,7 @@ nvinfer1::RNNDirection OnnxAttrs::get<nvinfer1::RNNDirection>(const std::string&
     }
     throw std::runtime_error("Unknown RNNDirection: " + direction);
 }
+#endif
 
 template <>
 std::vector<std::string> OnnxAttrs::get<std::vector<std::string>>(const std::string& key) const
@@ -300,6 +309,7 @@ nvinfer1::MatrixOperation OnnxAttrs::get<nvinfer1::MatrixOperation>(const std::s
     throw std::runtime_error("Unknown MatrixOperation: " + s);
 }
 
+#if NV_TENSORRT_MAJOR < 10
 template <>
 nvinfer1::ResizeMode OnnxAttrs::get<nvinfer1::ResizeMode>(const std::string& key) const
 {
@@ -314,6 +324,22 @@ nvinfer1::ResizeMode OnnxAttrs::get<nvinfer1::ResizeMode>(const std::string& key
     }
     throw std::runtime_error("Unknown ResizeMode: " + mode);
 }
+#else
+template <>
+nvinfer1::InterpolationMode OnnxAttrs::get<nvinfer1::InterpolationMode>(const std::string& key) const
+{
+    const auto& mode = this->get<std::string>(key);
+    if (mode == "nearest")
+    {
+        return nvinfer1::InterpolationMode::kNEAREST;
+    }
+    if (mode == "linear")
+    {
+        return nvinfer1::InterpolationMode::kLINEAR;
+    }
+    throw std::runtime_error("Unknown InterpolationMode: " + mode);
+}
+#endif
 
 template <>
 nvinfer1::ResizeCoordinateTransformation OnnxAttrs::get<nvinfer1::ResizeCoordinateTransformation>(

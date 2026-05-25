@@ -6,6 +6,12 @@
 #include "OnnxAttrs.hpp"
 #include <set>
 
+#if NV_TENSORRT_MAJOR < 10
+#define TRT_HAS_RNN 1
+#else
+#define TRT_HAS_RNN 0
+#endif
+
 namespace onnx2trt
 {
 
@@ -1197,14 +1203,6 @@ void getKernelParams(IImporterContext* ctx, ::onnx::NodeProto const& onnx_node, 
             {
                 paddingMode = nvinfer1::PaddingMode::kEXPLICIT_ROUND_UP;
             }
-            else if (onnx_auto_pad == "CAFFE_ROUND_DOWN")
-            {
-                paddingMode = nvinfer1::PaddingMode::kCAFFE_ROUND_DOWN;
-            }
-            else if (onnx_auto_pad == "CAFFE_ROUND_UP")
-            {
-                paddingMode = nvinfer1::PaddingMode::kCAFFE_ROUND_UP;
-            }
         }
     }
     else
@@ -1297,6 +1295,7 @@ bool isTransposeRequired(nvinfer1::Dims const& shape, nvinfer1::Permutation cons
     return false;
 }
 
+#if TRT_HAS_RNN
 NodeImportResult lstmLegacyImporter(
     IImporterContext* ctx, ::onnx::NodeProto const& node, std::vector<TensorOrWeights>& inputs)
 {
@@ -1318,9 +1317,6 @@ NodeImportResult lstmLegacyImporter(
     const nvinfer1::RNNDirection direction
         = (direction_str == "forward") ? nvinfer1::RNNDirection::kUNIDIRECTION : nvinfer1::RNNDirection::kBIDIRECTION;
     const int num_directions = (direction_str == "forward") ? 1 : 2;
-    // There are three distinct uses of an activation function within the LSTM equations
-    // One for the input/forget/output gates, one for the cell state, and one for the output
-    // RNNv2 only supports the default choice for each, listed here (duplicated for bidirectional)
     std::vector<std::string> default_activations = {"Sigmoid", "Tanh", "Tanh"};
     if (num_directions == 2)
     {
@@ -1337,7 +1333,6 @@ NodeImportResult lstmLegacyImporter(
     const int32_t input_forget = attrs.get<int>("input_forget", 0);
     ASSERT(0 == input_forget && "Coupled input/forget unsupported", ErrorCode::kUNSUPPORTED_NODE);
 
-    // Optional Inputs
     bool has_bias = false;
     nvinfer1::ITensor* sequence_lens = nullptr;
     nvinfer1::ITensor* initial_h = nullptr;
@@ -1361,7 +1356,6 @@ NodeImportResult lstmLegacyImporter(
             nvinfer1::ITensor* output = nullptr;
             if (inputs.at(i).is_weights())
             {
-                /* constant->shuffle bug (NVBug 2650549), so we do the transpose manually */
                 ShapedWeights weights = inputs.at(i).weights();
                 const int dtype_size = getDtypeSize(weights.type);
                 const size_t len = num_directions * batch_size * hidden_size * dtype_size;
@@ -1393,8 +1387,6 @@ NodeImportResult lstmLegacyImporter(
             }
             else
             {
-                /* TODO: Once NVBug 2650549 is fixed, we can use just this path instead */
-                /* nvinfer1::ITensor& source = convertToTensor(inputs.at(i), ctx); */
                 nvinfer1::ITensor& source = inputs.at(i).tensor();
                 auto* shuffle_layer = ctx->network()->addShuffle(source);
                 ASSERT(shuffle_layer && "Failed to create initial_h shuffle layer", ErrorCode::kINTERNAL_ERROR);
@@ -1418,12 +1410,10 @@ NodeImportResult lstmLegacyImporter(
         }
     }
 
-    // Input Shuffle Layer
     auto* input_shuffle_layer = ctx->network()->addShuffle(raw_input);
     ASSERT(input_shuffle_layer && "Failed to create input shuffle layer", ErrorCode::kINTERNAL_ERROR);
     input_shuffle_layer->setFirstTranspose(nvinfer1::Permutation{1, 0, 2});
 
-    // RNNv2 Layer
     nvinfer1::ITensor& input_seqs = *(input_shuffle_layer->getOutput(0));
     const nvinfer1::RNNOperation op = nvinfer1::RNNOperation::kLSTM;
     const int32_t layer_count = 1;
@@ -1568,6 +1558,7 @@ NodeImportResult lstmLegacyImporter(
     }
     return {outputs};
 }
+#endif
 
 nvinfer1::Dims makeDims(int nbDims, int val)
 {
@@ -1889,7 +1880,6 @@ bool supportsShapeTensor(nvinfer1::LayerType type, nvinfer1::ElementWiseOperatio
     case nvinfer1::LayerType::kCONVOLUTION:
     case nvinfer1::LayerType::kDECONVOLUTION:
     case nvinfer1::LayerType::kDEQUANTIZE:
-    case nvinfer1::LayerType::kFULLY_CONNECTED:
     case nvinfer1::LayerType::kITERATOR:
     case nvinfer1::LayerType::kLOOP_OUTPUT:
     case nvinfer1::LayerType::kLRN:
@@ -1899,10 +1889,8 @@ bool supportsShapeTensor(nvinfer1::LayerType type, nvinfer1::ElementWiseOperatio
     case nvinfer1::LayerType::kPLUGIN_V2:
     case nvinfer1::LayerType::kPOOLING:
     case nvinfer1::LayerType::kQUANTIZE:
-    case nvinfer1::LayerType::kRAGGED_SOFTMAX:
     case nvinfer1::LayerType::kRECURRENCE:
     case nvinfer1::LayerType::kRESIZE:
-    case nvinfer1::LayerType::kRNN_V2:
     case nvinfer1::LayerType::kSCALE:
     case nvinfer1::LayerType::kSOFTMAX:
     case nvinfer1::LayerType::kTRIP_LIMIT:

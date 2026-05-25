@@ -74,10 +74,8 @@ namespace TRT {
 			case nvinfer1::PaddingMode::kEXPLICIT_ROUND_UP: return "explicit round up";
 			case nvinfer1::PaddingMode::kSAME_UPPER: return "same supper";
 			case nvinfer1::PaddingMode::kSAME_LOWER: return "same lower";
-			case nvinfer1::PaddingMode::kCAFFE_ROUND_DOWN: return "caffe round down";
-			case nvinfer1::PaddingMode::kCAFFE_ROUND_UP: return "caffe round up";
+			default: return "unknown padding mode";
 		}
-		return "Unknow padding mode";
 	}
 
 	static const char* pooling_type_name(nvinfer1::PoolingType type){
@@ -110,7 +108,6 @@ namespace TRT {
 	static string layer_type_name(nvinfer1::ILayer* layer){
 		switch(layer->getType()){
 			case nvinfer1::LayerType::kCONVOLUTION: return "Convolution";
-			case nvinfer1::LayerType::kFULLY_CONNECTED: return "Fully connected";
 			case nvinfer1::LayerType::kACTIVATION: {
 				nvinfer1::IActivationLayer* act = (nvinfer1::IActivationLayer*)layer;
 				auto type = act->getActivationType();
@@ -134,17 +131,15 @@ namespace TRT {
 			case nvinfer1::LayerType::kTOPK: return "TopK";
 			case nvinfer1::LayerType::kGATHER: return "Gather";
 			case nvinfer1::LayerType::kMATRIX_MULTIPLY: return "Matrix multiply";
-			case nvinfer1::LayerType::kRAGGED_SOFTMAX: return "Ragged softmax";
 			case nvinfer1::LayerType::kCONSTANT: return "Constant";
-			case nvinfer1::LayerType::kRNN_V2: return "RNNv2";
 			case nvinfer1::LayerType::kIDENTITY: return "Identity";
 			case nvinfer1::LayerType::kPLUGIN_V2: return "PluginV2";
 			case nvinfer1::LayerType::kSLICE: return "Slice";
 			case nvinfer1::LayerType::kSHAPE: return "Shape";
 			case nvinfer1::LayerType::kPARAMETRIC_RELU: return "Parametric ReLU";
 			case nvinfer1::LayerType::kRESIZE: return "Resize";
+			default: return "Unknown layer type";
 		}
-		return "Unknow layer type";
 	}
 
 	static string layer_descript(nvinfer1::ILayer* layer){
@@ -155,16 +150,12 @@ namespace TRT {
 					conv->getNbOutputMaps(),
 					dims_str(conv->getKernelSizeNd()).c_str(),
 					dims_str(conv->getPaddingNd()).c_str(),
-					dims_str(conv->getStrideNd()).c_str(),
-					dims_str(conv->getDilationNd()).c_str(),
-					conv->getNbGroups()
-				);
-			}
-			case nvinfer1::LayerType::kFULLY_CONNECTED:{
-				nvinfer1::IFullyConnectedLayer* fully = (nvinfer1::IFullyConnectedLayer*)layer;
-				return format("output channels: %d", fully->getNbOutputChannels());
-			}
-			case nvinfer1::LayerType::kPOOLING: {
+				dims_str(conv->getStrideNd()).c_str(),
+				dims_str(conv->getDilationNd()).c_str(),
+				conv->getNbGroups()
+			);
+		}
+		case nvinfer1::LayerType::kPOOLING: {
 				nvinfer1::IPoolingLayer* pool = (nvinfer1::IPoolingLayer*)layer;
 				return format(
 					"window: %s, padding: %s",
@@ -186,7 +177,7 @@ namespace TRT {
 			case nvinfer1::LayerType::kPLUGIN:
 			case nvinfer1::LayerType::kLRN:
 			case nvinfer1::LayerType::kSCALE:
-			case nvinfer1::LayerType::kSOFTMAX:
+				case nvinfer1::LayerType::kSOFTMAX:
 			case nvinfer1::LayerType::kCONCATENATION:
 			case nvinfer1::LayerType::kELEMENTWISE:
 			case nvinfer1::LayerType::kUNARY:
@@ -196,9 +187,7 @@ namespace TRT {
 			case nvinfer1::LayerType::kTOPK:
 			case nvinfer1::LayerType::kGATHER:
 			case nvinfer1::LayerType::kMATRIX_MULTIPLY:
-			case nvinfer1::LayerType::kRAGGED_SOFTMAX:
 			case nvinfer1::LayerType::kCONSTANT:
-			case nvinfer1::LayerType::kRNN_V2:
 			case nvinfer1::LayerType::kIDENTITY:
 			case nvinfer1::LayerType::kPLUGIN_V2:
 			case nvinfer1::LayerType::kSLICE:
@@ -206,8 +195,9 @@ namespace TRT {
 			case nvinfer1::LayerType::kPARAMETRIC_RELU:
 			case nvinfer1::LayerType::kRESIZE:
 				return "";
+			default:
+				return "";
 		}
-		return "Unknow layer type";
 	}
 
 	static bool layer_has_input_tensor(nvinfer1::ILayer* layer){
@@ -239,7 +229,6 @@ namespace TRT {
 
 	template<typename _T>
 	static void destroy_nvidia_pointer(_T* ptr) {
-		if (ptr) ptr->destroy();
 	}
 
 	const char* mode_string(Mode type) {
@@ -362,7 +351,7 @@ namespace TRT {
 				files_[i] = allimgs_[cursor_++];
 
 			if (!tensor_){
-				tensor_.reset(new Tensor(dims_.nbDims, dims_.d));
+				std::vector<int> shape(dims_.nbDims); for(int i = 0; i < dims_.nbDims; ++i) shape[i] = static_cast<int>(dims_.d[i]); tensor_.reset(new Tensor(shape));
 				tensor_->set_stream(stream_);
 				tensor_->set_workspace(make_shared<TRT::MixMemory>());
 			}
@@ -451,7 +440,7 @@ namespace TRT {
 				files_[i] = allimgs_[cursor_++];
 
 			if (!tensor_){
-				tensor_.reset(new Tensor(dims_.nbDims, dims_.d));
+				std::vector<int> shape(dims_.nbDims); for(int i = 0; i < dims_.nbDims; ++i) shape[i] = static_cast<int>(dims_.d[i]); tensor_.reset(new Tensor(shape));
 				tensor_->set_stream(stream_);
 				tensor_->set_workspace(make_shared<TRT::MixMemory>());
 			}
@@ -728,8 +717,8 @@ namespace TRT {
 			);
 		}
 		
-		builder->setMaxBatchSize(maxBatchSize);
-		config->setMaxWorkspaceSize(maxWorkspaceSize);
+		// TRT 10: Remove setMaxBatchSize - use optimization profiles instead
+		config->setMemoryPoolLimit(nvinfer1::MemoryPoolType::kWORKSPACE, maxWorkspaceSize);
 
 		auto profile = builder->createOptimizationProfile();
 		for(int i = 0; i < net_num_input; ++i){
@@ -763,7 +752,22 @@ namespace TRT {
 
 		INFO("Building engine...");
 		auto time_start = iLogger::timestamp_now();
-		shared_ptr<ICudaEngine> engine(builder->buildEngineWithConfig(*network, *config), destroy_nvidia_pointer<ICudaEngine>);
+
+		// TRT 10: Build serialized network first
+		shared_ptr<IHostMemory> serializedModel(builder->buildSerializedNetwork(*network, *config), destroy_nvidia_pointer<IHostMemory>);
+		if (serializedModel == nullptr) {
+			INFOE("Failed to build serialized network");
+			return false;
+		}
+
+		// TRT 10: Deserialize to engine
+		shared_ptr<IRuntime> runtime(createInferRuntime(gLogger), destroy_nvidia_pointer<IRuntime>);
+		if (runtime == nullptr) {
+			INFOE("Failed to create runtime");
+			return false;
+		}
+
+		shared_ptr<ICudaEngine> engine(runtime->deserializeCudaEngine(serializedModel->data(), serializedModel->size()), destroy_nvidia_pointer<ICudaEngine>);
 		if (engine == nullptr) {
 			INFOE("engine is nullptr");
 			return false;

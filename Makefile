@@ -5,12 +5,10 @@ build_pango_backend    := no
 build_truetype_backend := yes
 
 lean_protobuf  := /home/jarvis/protobuf
-# lean_tensor_rt := /opt/TensorRT-8.4.1.5
-# RT-DETR 必须指定高版本的 tensorRT
-lean_tensor_rt := /home/jarvis/lean/TensorRT-8.6.1.6
-lean_cudnn     := /usr/local/cuda-11.6
-lean_opencv    := /usr/local
-lean_cuda      := /usr/local/cuda-11.6
+lean_tensor_rt := /home/yihoyo/trt_env/TensorRT-10.10.0.31
+lean_cudnn     := /usr/local/cuda-12.9
+lean_opencv    := /usr/local/opencv_cuda12.9
+lean_cuda      := /usr/local/cuda-12.9
 
 # 如果是其他显卡，请修改-gencode=arch=compute_75,code=sm_75为对应显卡的能力
 # 显卡对应的号码参考这里：https://developer.nvidia.com/zh-cn/cuda-gpus#compute
@@ -40,6 +38,7 @@ library_paths := $(lean_protobuf)/lib \
 			$(lean_opencv)/lib    \
 			$(lean_tensor_rt)/lib \
 			$(lean_cuda)/lib64  \
+			$(lean_cuda)/lib64/stubs \
 			$(lean_cudnn)/lib
 
 link_librarys := opencv_core opencv_imgproc opencv_videoio opencv_highgui opencv_imgcodecs \

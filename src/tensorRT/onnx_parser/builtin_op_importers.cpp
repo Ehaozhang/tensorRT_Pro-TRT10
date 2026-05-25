@@ -1510,39 +1510,8 @@ DEFINE_BUILTIN_OP_IMPORTER(Gemm)
     // TRT does not support INT32 input types for this node
     ASSERT(!inputs.at(0).isInt32() && !inputs.at(1).isInt32()
         && "TensorRT doesn't support INT32 inputs for GEMM!", ErrorCode::kUNSUPPORTED_NODE);
-    // Use FC if it is likely to be faster - which is usually when no Shuffles are required.
-    bool canUseFC = inputs.at(0).is_tensor() && inputs.at(1).is_weights() && alpha == 1.f
-        && beta == 1.f && inputs.at(0).tensor().getDimensions().nbDims == 2 && inputs.at(1).weights().shape.nbDims == 2;
-    canUseFC &= inputs.size() < 3 || (inputs.at(2).is_weights() && inputs.at(2).weights().shape.nbDims == 1);
-    if (canUseFC)
-    {
-        LOG_VERBOSE("GEMM: using FC layer instead of MM because all criteria were met.");
-        const std::vector<int> axesInput{2, 3};
-        nvinfer1::ITensor* inputAExtendDim = unsqueezeTensor(ctx, node, inputA, axesInput);
-
-        ShapedWeights weights = inputs.at(1).weights();
-        if (!transB)
-        {
-            auto transposedWeights = ctx->createTempWeights(weights.type, weights.shape);
-            ASSERT(transposeWeights(weights, {1, 0}, &transposedWeights, ctx), ErrorCode::kUNSUPPORTED_NODE);
-            weights = transposedWeights;
-        }
-        ShapedWeights biases{};
-        if (inputs.size() > 2)
-        {
-            biases = inputs.at(2).weights();
-        }
-        nvinfer1::IFullyConnectedLayer* fc = ctx->network()->addFullyConnected(*inputAExtendDim, biases.shape.d[0], weights, biases);
-        // Register layer, along with refittable kernel weights and bias weights (if any)
-        ctx->registerLayer(fc, getNodeName(node));
-        ctx->network()->setWeightsName(weights, weights.getName());
-        if (inputs.size() == 3)
-        {
-            ctx->network()->setWeightsName(biases, inputs.at(2).weights().getName());
-        }
-        const std::vector<int> axesOutput{2, 3};
-        return {{squeezeTensor(ctx, node, *fc->getOutput(0), axesOutput)}};
-    }
+    // TensorRT 10 removed addFullyConnected, use MatMul path instead
+    bool canUseFC = false;
 
     nvinfer1::ITensor* inputB {nullptr};
 
@@ -2811,34 +2780,6 @@ DEFINE_BUILTIN_OP_IMPORTER(MatMul)
     nvinfer1::Dims inputADims = inputA->getDimensions();
     nvinfer1::Dims inputBDims = inputB->getDimensions();
 
-    // Use FC if possible as FC can be fused with later activation and bias layers.
-    // Input unsqueezed from (N, C) to (N, 1, 1, C).
-    // Output squeezed from (N, K, 1, 1) to (N, K).
-    bool canUseFC = inputs.at(0).is_tensor() && inputs.at(1).is_weights() &&
-                    inputADims.nbDims == 2 && inputBDims.nbDims == 2;
-    if (canUseFC)
-    {
-        LOG_VERBOSE("GEMM: using FC layer instead of MM because all criteria were met.");
-        const std::vector<int> axesInput{2, 3};
-        nvinfer1::ITensor* inputAExtendDim = unsqueezeTensor(ctx, node, *inputA, axesInput);
-
-        ShapedWeights weights = inputs.at(1).weights();
-        auto transposedWeights = ctx->createTempWeights(weights.type, weights.shape);
-        ASSERT(transposeWeights(weights, {1, 0}, &transposedWeights, ctx) && "Failed to transpose input tensor B.", ErrorCode::kUNSUPPORTED_NODE);
-        weights = transposedWeights;
-
-        // Create empty bias weights as MatMul op does not have bias addition.
-        auto biasWeights = ShapedWeights::empty(::onnx::TensorProto::FLOAT);
-        nvinfer1::IFullyConnectedLayer* fc
-            = ctx->network()->addFullyConnected(*inputAExtendDim, inputBDims.d[1], transposedWeights, biasWeights);
-        // Register layer name and kernel weights for FC.
-        ctx->registerLayer(fc, getNodeName(node));
-        // Always set names for weights passed to the network, i.e., the transposed weights.
-        ctx->network()->setWeightsName(weights, inputs.at(1).weights().getName());
-        const std::vector<int> axesOutput{2, 3};
-        return {{squeezeTensor(ctx, node, *fc->getOutput(0), axesOutput)}};
-    }
-
     bool needSqueezeHead = false;
     bool needSqueezeTail = false;
     const int32_t t1Dims = inputA->getDimensions().nbDims;
@@ -3392,7 +3333,7 @@ DEFINE_BUILTIN_OP_IMPORTER(Resize)
     OnnxAttrs attrs(node, ctx);
 
     auto mode = attrs.get<std::string>("mode", "nearest");
-    auto resizeMode = mode == "nearest" ? nvinfer1::ResizeMode::kNEAREST : nvinfer1::ResizeMode::kLINEAR;
+    auto resizeMode = mode == "nearest" ? nvinfer1::InterpolationMode::kNEAREST : nvinfer1::InterpolationMode::kLINEAR;
 
     std::string transformationMode = "half_pixel";
 
@@ -3503,7 +3444,7 @@ DEFINE_BUILTIN_OP_IMPORTER(Resize)
     int scaleSize = scales_weights.shape.d[0];
     ASSERT( (scaleSize == inputRank) && "The shape of input scales must align with the input rank.", ErrorCode::kINVALID_NODE);
     float const* scaleValues = static_cast<float const*>(scales_weights.values);
-    if (resizeMode == nvinfer1::ResizeMode::kLINEAR)
+    if (resizeMode == nvinfer1::InterpolationMode::kLINEAR)
     {
         ASSERT(canUseLinearResize(scaleSize, scaleValues)
             && "This version of TensorRT only supports linear resizing on the outermost 3 dimensions.",
@@ -4356,7 +4297,7 @@ DEFINE_BUILTIN_OP_IMPORTER(Tile)
     nvinfer1::ISliceLayer* tile
         = addSlice(ctx, input, similar(ctx, inputDims, 0), outputShape, similar(ctx, inputDims, 1));
     ctx->registerLayer(tile, getNodeName(node));
-    tile->setMode(nvinfer1::SliceMode::kWRAP);
+    tile->setMode(nvinfer1::SampleMode::kWRAP);
 
     RETURN_FIRST_OUTPUT(tile);
 }
@@ -4549,13 +4490,13 @@ DEFINE_BUILTIN_OP_IMPORTER(Upsample)
     auto mode = attrs.get<std::string>("mode", "nearest");
     ASSERT( (mode == "nearest" || mode == "linear") && "The attribute mode can only be nearest or linear.", ErrorCode::kUNSUPPORTED_NODE);
     // Set default resize mode. Nearest resize support N-D (where 0 < N <= 8) resize.
-    nvinfer1::ResizeMode resizeMode = nvinfer1::ResizeMode::kNEAREST;
+    nvinfer1::InterpolationMode resizeMode = nvinfer1::InterpolationMode::kNEAREST;
     if (mode == "linear")
     {
         ASSERT(canUseLinearResize(scale_factors.size(), &scale_factors.front())
             && "This version of TensorRT only supports linear resizing on the outermost 3 dimensions",
             ErrorCode::kUNSUPPORTED_NODE);
-        resizeMode = nvinfer1::ResizeMode::kLINEAR;
+        resizeMode = nvinfer1::InterpolationMode::kLINEAR;
     }
     // Add resize layer
     nvinfer1::IResizeLayer* const layer = ctx->network()->addResize(tensor);
@@ -4875,6 +4816,7 @@ DEFINE_BUILTIN_OP_IMPORTER(TRT_MatMul)
     RETURN_FIRST_OUTPUT(layer);
 }
 
+#if TRT_HAS_RNN
 typedef std::function<void(int, nvinfer1::RNNGateType, nvinfer1::Weights)> RNNWeightsAdder;
 
 bool addRNNv2Weights(RNNWeightsAdder adder, int layerNb, std::vector<nvinfer1::RNNGateType> const& gates,
@@ -4971,7 +4913,9 @@ DEFINE_BUILTIN_OP_IMPORTER(TRT_RNNv2)
 
     RETURN_ALL_OUTPUTS(layer);
 }
+#endif // TRT_HAS_RNN
 
+#if TRT_HAS_RNN
 DEFINE_BUILTIN_OP_IMPORTER(TRT_RaggedSoftmax)
 {
     ASSERT(inputs.at(0).is_tensor() && "The first input must be a tensor.", nvonnxparser::ErrorCode::kINVALID_NODE);
@@ -5007,6 +4951,7 @@ DEFINE_BUILTIN_OP_IMPORTER(TRT_FullyConnected)
     ctx->registerLayer(layer, getNodeName(node));
     RETURN_FIRST_OUTPUT(layer);
 }
+#endif // TRT_HAS_RNN
 
 DEFINE_BUILTIN_OP_IMPORTER(TRT_MaxAverageBlendPool)
 {
@@ -5132,7 +5077,7 @@ DEFINE_BUILTIN_OP_IMPORTER(TRT_Resize)
     ctx->registerLayer(layer, getNodeName(node));
 
     OnnxAttrs attrs(node, ctx);
-    const auto mode = attrs.get<nvinfer1::ResizeMode>("mode");
+    const auto mode = attrs.get<nvinfer1::InterpolationMode>("mode");
     const auto transformation = attrs.get<nvinfer1::ResizeCoordinateTransformation>("coordTransform");
     const auto selector = attrs.get<nvinfer1::ResizeSelector>("resizeSelector");
     const auto roundMode = attrs.get<nvinfer1::ResizeRoundMode>("round_mode");

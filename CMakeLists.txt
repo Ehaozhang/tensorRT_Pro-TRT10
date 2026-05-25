@@ -7,22 +7,20 @@ set(CMAKE_BUILD_TYPE Debug)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/workspace)
 
 # 如果你是不同显卡，请设置为显卡对应的号码参考这里：https://developer.nvidia.com/zh-cn/cuda-gpus#compute
-#set(CUDA_GEN_CODE "-gencode=arch=compute_75,code=sm_75")
+set(CUDA_GEN_CODE "-gencode=arch=compute_86,code=sm_86")
 
 # 如果你的opencv找不到，可以自己指定目录
-set(OpenCV_DIR   "/usr/local/include/opencv4")
+set(OpenCV_DIR   "/usr/local/opencv_cuda12.3")
 
-set(CUDA_TOOLKIT_ROOT_DIR     "/usr/local/cuda-11.6")
-set(CUDNN_DIR    "/usr/local/cudnn8.4.0.27-cuda11.6")
-# set(TENSORRT_DIR "/opt/TensorRT-8.4.1.5")
-# RT-DETR 必须指定高版本的 tensorRT
-set(TENSORRT_DIR "/home/jarvis/lean/TensorRT-8.6.1.6")
+set(CUDA_TOOLKIT_ROOT_DIR     "/usr/local/cuda-12.3")
+set(CUDNN_DIR    "/usr/local/cuda-12.3")
+set(TENSORRT_DIR "/home/yihoyo/trt_env/TensorRT-10.10.0.31")
 
 # 因为protobuf，需要用特定版本，所以这里指定路径
-set(PROTOBUF_DIR "/home/jarvis/protobuf")
+set(PROTOBUF_DIR "/usr/local")
 
 find_package(CUDA REQUIRED)
-find_package(OpenCV)
+# find_package(OpenCV)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/src
@@ -42,7 +40,8 @@ include_directories(
 link_directories(
     ${PROTOBUF_DIR}/lib
     ${TENSORRT_DIR}/lib
-    ${CUDA_TOOLKIT_ROOT_DIR}/lib64
+    ${CUDA_TOOLKIT_ROOT_DIR}/targets/x86_64-linux/lib
+    ${CUDA_TOOLKIT_ROOT_DIR}/targets/x86_64-linux/lib/stubs
     ${CUDNN_DIR}/lib
     ${OpenCV_DIR}/lib
 )
